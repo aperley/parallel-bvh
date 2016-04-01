@@ -23,7 +23,7 @@
 <p>We are going to implement triangle mesh global upsample, downsample, and resample operations on the GPU. We will use the halfedge data structure to represent the triangle mesh.</p>
 
 <h3>Background</h3>
-<p>Triangle meshes are used in computer graphics to represent surfaces in three dimensions. The halfedge data structure can be used to represent a triangle mesh, and provides efficient edge and vertex insertion, deletetion, and traversal.</p>
+<p>Triangle meshes are used in computer graphics to represent surfaces in three dimensions. The halfedge data structure can be used to represent a triangle mesh, and provides efficient edge and vertex insertion, deletetion, and traversal. Global upsampling, downsampling, and resampling of halfedge meshes can be implemented with three primitive operations: edge flip, edge split, and edge collapse. We will implement global remeshing using these primitive operations in CUDA. Since large 3D models can contain hundreds of thousands (or more!) of edges, parallelizing over edges provides a large speedup potential. However, doing so efficiently will require effective spacial partioning of the mesh to reduce the amount of synchronization needed.</p>
 
 <h3>
 <a id="creating-pages-manually" class="anchor" href="#creating-pages-manually" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Creating pages manually</h3>
