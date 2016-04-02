@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Parallel Mesh Downsampling</title>
+    <title>Parallel Remeshing</title>
 
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/github-light.css">
@@ -15,22 +15,20 @@
   <body>
     <div class="wrapper">
       <header>
-        <h1>Parallel Mesh Downsampling on Multicore CPUs</h1>
+        <h1>Parallel Global Surface Remeshing</h1>
         <p>Aaron Perley (aperley) and Siddhant Madhuk (smadhuk)</p>
       </header>
       <section>
         <h3>Summary</h3>
-<p>We are going to investigate the performance of different implementations of mesh downsampling via quadratic error simplification on. We will focus on ways to efficiently collapse edges in parallel, while minimizing synchronization necessary to maintain the correctness of the data structure, and producting a high quality downsampling.</p>
+<p>We are going to implement triangle mesh global upsample, downsample, and resample operations on the GPU. We will use the halfedge data structure to represent the triangle mesh.</p>
 
 <h3>Background</h3>
-<p>
-  Halfedge triangle meshes are used in computer graphics to represent surfaces in three dimensions. When a mesh has more vertices and edges than are necessary to effectively model a shape, downsampling can be used to collapse unnecessary edges. Although it is not possible to determine a completely optimized edge collapse order, the quadric error metric developed by Michael Garland and Paul Heckbert provides a heuristic to determine good edge collapse candidates. The basic algorithm computes a quadric error score for each edge and then uses a priority queue to iteratively collapse the edges with the best score. After each edge is collapsed, other edges may also be removed and the heuristic score for some edges may need to be updated. This introduces many opportunities for parallelism. Trivially, we can parallelize the computation of the quadric error scores for each edge. In addition, we will also collapse edges and update quadric error scores in parallel. This will require synchronization between threads to maintain correctness and provides an opportunity to test different work partitioning schemes.
-</p>
+<p>Triangle meshes are used in computer graphics to represent surfaces in three dimensions. The halfedge data structure can be used to represent a triangle mesh, and provides efficient edge and vertex insertion, deletetion, and traversal. Global upsampling, downsampling, and resampling of halfedge meshes can be implemented with three primitive operations: edge flip, edge split, and edge collapse. We will implement global remeshing using these primitive operations in CUDA. Since large 3D models can contain hundreds of thousands (or more!) of edges, parallelizing over edges provides a large speedup potential. However, doing so efficiently will require effective spacial partioning of the mesh to reduce the amount of synchronization needed.</p>
 
-<h3>The Challenge</h3>
-<p>
-  This problem is challenging since removing edges in a halfedge mesh in parallel requires synchronization so that a thread is not trying to traverse or remove edges that another thread has removed or edited. We will investigate the performance of different synchronization techniques including coarse-grained locks on the entire data structure, fine-grained locks on individual mesh elements, transactional memory operations, as well as lock free solutions that ensure that conflicting updates never occur. We will also investiage different work and spacial partitioning schemes, to ensure that synchronization between threads is relatively infrequent. Finally, traversing the halfedge data structure can have very incoherent memory access.
-</p>
+<h3>
+<a id="creating-pages-manually" class="anchor" href="#creating-pages-manually" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Creating pages manually</h3>
+
+<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
 
 <h3>
 <a id="authors-and-contributors" class="anchor" href="#authors-and-contributors" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Authors and Contributors</h3>
@@ -39,6 +37,23 @@
 
 <h3>
 <a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Support or Contact</h3>
+
+<h3>Resources</h3>
+
+<p>The starter code that we will be working with will be from assignment 2 from 15-462, MeshEdit. The code contains a serial solution to the probelem that we are trying to tackle and we will be using it as a reference while writing our parallel code. We will start by working on the six-core Xeon e5 in the lateday cluster initially and also the Xeon Phi to see which gives us better performance. We will be looking at the difference in performance obtained when we use different methods of synchronizations across the two machines and as we use different implementations for our code. Then we will investigate the performance of our code when it has been ported to the CUDA language so it can work on NVIDIA GPUs.</p>
+
+<h3>Goals and Deliverables</h3>
+
+<p>Our goals for the project are</p>
+
+<ul>
+  <li>Implement a working serial version, since our starter code still has a few glitches that we need to resolve</li>
+  <li>Implement a naive parallel version by basically locking all the edges in our mesh whenever an opertaion is being performed on them.</li>
+  <li>Investigate the effects of using different parallel approaches, such as transactional memory, coarse grained locks and fine grained locks on mesh elements.</li>
+  <li>Investigate the possibility of using different data structures to implement out mesh. Currently we are building half edges out of a given input which leads to a problem where edges that are close to each other on the mesh are actually at very different memory addresses, leading to incoherency issues. We will try and find a way to avoid this issue.</li>
+  <li>Our first implementation will be designed to work on the lateday CPUs, we will also see the difference in the speedup achieved on the six core Xeon e5 and the fifty core Xeon Phi based on different approaches.</li>
+  <li>The next step will be to port the code to work on GPUs in the Gates clusters and investigate the performance of our code on these machines.</li>
+</ul>
 
 <p>Having trouble with Pages? Check out our <a href="https://help.github.com/pages">documentation</a> or <a href="https://github.com/contact">contact support</a> and we’ll help you sort it out.</p>
       </section>
