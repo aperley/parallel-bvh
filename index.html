@@ -16,13 +16,16 @@
     <div class="wrapper">
       <header>
       <h1>Parallel Mesh Downsampling on Multicore CPUs</h1>
-        <p>Aaron Perley (aperley) and Siddhant Madhuk (smadhuk)</p>
+        <p>
+          Aaron Perley (aperley)    <br />
+          Siddhant Madhuk (smadhuk)
+        </p>
         <img src="ball.PNG" width="60%" style="margin: 0 auto;"></img>
         <img src="ball_downsampled.PNG" width="60%" style="margin: 0 auto;"></img>
       </header>
       <section>
         <h3>Summary</h3>
-<p>We are going to investigate the performance of different implementations of mesh downsampling via quadratic error simplification on. We will focus on ways to efficiently collapse edges in parallel, while minimizing synchronization necessary to maintain the correctness of the data structure, and producting a high quality downsampling.</p>
+<p>We are going to investigate the performance of different implementations of mesh downsampling via quadratic error simplification on multicore CPUs. We will focus on ways to efficiently collapse edges in parallel, while minimizing synchronization necessary to maintain the correctness of the data structure, and producting a high quality downsampling.</p>
 
 <h3>Background</h3>
 <p>
@@ -41,8 +44,8 @@
 <p>
   Our goals for the project are:
   <ul>
-    <li>Implement a working serial version, since our starter code still has a few glitches that we need to resolve</li>
-    <li>Implement a naive parallel version by basically locking all the edges in our mesh whenever an opertaion is being performed on them.</li>
+    <li>Implement a working serial version, since our starter code still has a few glitches that we need to resolve.</li>
+    <li>Implement a naive parallel version by basically locking all the edges in our mesh whenever an operation is being performed on them.</li>
     <li>Investigate the effects of using different parallel approaches, such as transactional memory, coarse grained locks and fine grained locks on mesh elements.</li>
     <li>Investigate the possibility of using different data structures to implement out mesh. Currently we are building half edges out of a given input which leads to a problem where edges that are close to each other on the mesh are actually at very different memory addresses, leading to incoherency issues. We will try and find a way to avoid this issue.</li>
     <li>Our first implementation will be designed to work on the lateday CPUs, we will also see the difference in the speedup achieved on the six core Xeon e5 and the fifty core Xeon Phi based on different approaches.</li>
@@ -51,8 +54,19 @@
 </p>
 
 <h3>Platform Choice</h3>
-
 <p>Our problem ends up being IO-bound rather than bound computationally. Since problems that are bound by IO are usually better suited for CPU tasks, we will be implementing our code on the latedays cluster first. We will then later check the performance of our code on the GPUs of the Gates, but this will be a secondary objective in nature.</p>
+
+<h3>Schedule</h3>
+<p>
+  <ul>
+    <li><strong>Friday, April 8:</strong> Finish getting correct serial version working on Latedays. Finish simple parallel version with a lock on the entire data structure.</li>
+    <li><strong>Friday, April 15:</strong> Finish fine-grained locking version and comparisons to serial version running on Xeon e5-2620s and Xeon Phis.</li>
+    <li><strong>Friday, April 22:</strong> Finish implementation of spatial partitioning scheme and comparisons to other versions. Also test tweaks to the data structure to improve memory accesses.</li>
+    <li><strong>Friday, April 29:</strong> Port code to CUDA and test on the Gates 5000 machines.</li>
+    <li><strong>Friday, May 6:</strong> Prepare visualisations of results and demo.</li>
+  </ul>
+  
+</p>
 
 </section>
       <footer>
