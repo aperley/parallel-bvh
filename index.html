@@ -14,15 +14,14 @@
   </head>
   <body>
     <div class="wrapper">
-      <header>
-        <h1>Parallel Global Surface Remeshing</h1>
+      <h1>Parallel Mesh Downsampling on Multicore CPUs</h1>
         <p>Aaron Perley (aperley) and Siddhant Madhuk (smadhuk)</p>
-        <img src="ball.PNG" width="75%" style="margin:0 auto;"></img>
-        <img src="ball_downsampled.PNG" width="75%" style="margin:0 auto;"></img>
+        <img src="ball.PNG" width="60%" style="margin: 0 auto;"></img>
+        <img src="ball_downsampled.PNG" width="60%" style="margin: 0 auto;"></img>
       </header>
       <section>
         <h3>Summary</h3>
-<p>We are going to implement triangle mesh global upsample, downsample, and resample operations on the GPU. We will use the halfedge data structure to represent the triangle mesh.</p>
+<p>We are going to investigate the performance of different implementations of mesh downsampling via quadratic error simplification on. We will focus on ways to efficiently collapse edges in parallel, while minimizing synchronization necessary to maintain the correctness of the data structure, and producting a high quality downsampling.</p>
 
 <h3>Background</h3>
 <p>
