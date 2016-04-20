@@ -24,6 +24,55 @@
         <img src="ball_downsampled.PNG" width="60%" style="margin: 0 auto;"></img>
       </header>
       <section>
+        <h3>Checkpoint (4/19)</h3>
+        <ul>
+          <li>
+            We managed to get OpenMP working with Aaron's mesh downsampling code from
+            15-462. As a test, we used OpenMP to parallelize the trivially parallelizable parts
+            of the computation, which are just <code>map</code>s over the edges and vertices in the mesh,
+            and saw an expected speedup.
+          </li>
+          <li>
+            We have begun our initial parallel attempt, which attaches mutexes to every edge and vertex in the
+            mesh and we have modified the mutable priority queue to be thread safe. The bulk of our work in the next
+            week will be completing and polishing the thread safe halfedge mesh. We have also investigated using
+            SIMD in addition to multithreaded parallelism, since many parts of the code look like they will work with SIMD.
+          </li>
+          <li>
+            We will be presenting graphs of our speedup, as well as videos of the difference in the speedup of downsampling using
+            serial vs. parallel implementations. The videos will allow us to compare not only the time difference, but also any changes
+            in the quality of the downsampling.
+          </li>
+        </ul>
+        
+        Revised Schedule
+        <ul>
+          <li>
+            <strong>4/20 - 4/24:</strong> Aaron: Finish fine-grained locking implementation of halfedge mesh.
+            Siddhant: Modify mutable priority queue to use more fine grained locking.
+          </li>
+          <li>
+            <strong>4/25 - 4/27</strong> Aaron: Get code working on the Xeon Phis.
+            Siddhant: Begin working on spatial partitioning scheme.
+          </li>
+          <li>
+            <strong>4/28 - 5/1</strong> Aaron: Investigate and implement the use of atomics for ensuring the halfedge
+            mesh is thread safe. Aaron and Siddhant: Finish implementing spatial partioning scheme.
+          </li>
+          <li>
+            <strong>5/2 - 5/5</strong> Aaron: Implement the system using CUDA, if feasible.
+            Siddhant: Tweak data structures and algorithms to take advantage of spatial partitioning scheme.
+          </li>
+          <li>
+            <strong>5/6 - 5/9</strong> Aaron and Siddhant: Write up results, prepare graphs and videos.
+          </li>
+        </ul>
+        
+        
+      </section>
+      
+      
+      <section>
         <h3>Summary</h3>
 <p>We are going to investigate the performance of different implementations of mesh downsampling via quadratic error simplification on multicore CPUs. We will focus on ways to efficiently collapse edges in parallel, while minimizing synchronization necessary to maintain the correctness of the data structure, and producting a high quality downsampling.</p>
 
