@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Parallel Mesh Downsampling</title>
+    <title>Parallel BVH Building</title>
 
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/github-light.css">
@@ -15,14 +15,103 @@
   <body>
     <div class="wrapper">
       <header>
-      <h1>Parallel Mesh Downsampling</h1>
+      <h1>Parallel BVH Building</h1>
         <p>
           Aaron Perley (aperley)    <br />
           Siddhant Madhuk (smadhuk)
         </p>
-        <img src="ball.PNG" width="60%" style="margin: 0 auto;"></img>
-        <img src="ball_downsampled.PNG" width="60%" style="margin: 0 auto;"></img>
+        <img src="thing.PNG" width="60%" style="margin: 0 auto;"></img>
+        <img src="thing2.PNG" width="60%" style="margin: 0 auto;"></img>
       </header>
+      
+      <section>
+        <h2>Writeup</h3>
+        
+        <h3>Summary</h3>
+        <p>
+          We investigated the performance of different approaches to   parallelizing bounding volume hierarchy construction for triangle meshes using the surface area heuristic. We used OpenMP to parallelize various sections of the serial algorithm, and compared the runtimes of different implementations.
+        </p>
+        
+        <h3>Background</h3>
+        <p>
+          Halfedge triangle meshes are used in computer graphics to represent surfaces in three dimensions. One technique used to render meshes from a particular viewpoint is raytracing, which produces very physically accurate images by simulating the paths rays of light take through a scene to the camera. Since naively intersecting a ray with a mesh with <code>N</code> primitives is <code>O(N)</code>, a bounding volume hierarchy is used to reduce the cost of ray-mesh intersection to <code>O(logN)</code>. A BVH is a tree structure in which each node knows which primitives lie inside of it, as well as the axis-aligned bounding box that contains all of its primitives.
+        </p>
+        <img src="bvh.png" width="60%", style="margin: 0 auto;"></img>
+        <p>
+          A good BVH minimizes the amount of empty space inside of the bounding box of a node. In other words, when choosing a partitioning plane between a collection of primitives, we want to choose the plane that results in the smallest bounding boxes around the primitives on each side of it. The surface area heuristic is commonly used to do this: It assigns a cost to a particular partitioning of primitives based on the probability that a random ray entering a bounding box hits a primitive within the box. Psuedocode for a serial recursive algorithm that takes a list of primitives as input and produces a BVH using the surface area heuristic is shown below:
+          
+          <pre>
+build_bvh(primitives):
+  if number of primitives is small:
+    return
+
+  for each axis (x, y, z):
+    for each possible partitioning plane between primitives:
+      generate the bounding boxes for the left and right
+      evaluate surface area heuristic (SAH)
+  
+  pick the partitioning plane and axis with the best SAH
+  partition the primitives into left and right nodes
+  
+  build_bvh(primitives in left node)
+  build_bvh(primitives in right node)
+          </pre>
+         
+        There are two main approaches to parallelizing this algorithm:
+        <ul>
+          <li>Parallelize loops over primitives, since generating the bounding boxes for left and right and partitioning the primitives into the left and right nodes requires looping over all the input primitives.</li>
+          <li>Parallelize the recursive calls to build_bvh, since they work on separate partitions of the primitives.</li>
+        </ul>
+      </p>
+        
+      <h3>Approach</h3>
+      <p>
+        We started with the serial BVH building algorithm from Aaron's implementation of the 15-462 raytracer. We used OpenMP on machines with 12-core Intel Xeon CPUs running at 3.2GHz. Loops over primitives and recursive calls were parallelized using OpenMP tasks.
+      </p>
+      
+      <p>
+        We developed 3 implementations to investigate the two approaches discussed above:
+        <ul>
+          <li>
+            <strong>Parallelize over recursive calls</strong>: Each call to build_bvh runs is run in a different thread until the maximum number of threads is reached. This results in different parts of the tree being recursively processed in parallel.
+           </li>
+           <li>
+            <strong>Parallelize over recursive calls with a work queue</strong>: Like the above approach, but recursive calls are pushed onto a work queue that processed by a pool of worker threads. This prevents the work imbalance that can occur when the number of primitives on each side of the root node partition differ greatly.
+          </li>
+          <li>
+            <strong>Parallelize over loops over primitives and recursive calls</strong>: Each call to build_bvh is run with a team of threads. At the two recursive calls, the team is divided in half, and each half forms the team for one of the recursive calls. The team is then used to parallelize loops over primitives in build_bvh. This required slightly changing parts of the algorithm to allow the bounding box expansions to be performed in parallel.
+          </li>
+        </ul>
+      </p>
+      
+      <h3>Results</h3>
+      <p>
+        We tested the three implementations on two different large triangle meshes and compared the wall clock runtimes to build the complete BVH.
+      </p>
+      
+      <p>
+        Dragon (871,100 primitives)
+        <img src="runtime_dragon.png" width="100%"></img>
+      </p>
+      
+      <p>
+        Wall-E (240,000 primitives)
+        <img src="runtime_walle.png" width="100%"></img>
+      </p>
+      
+      Overall, we saw pretty similar speedups between the three implementations. Since the runtime completely flattens out past 12 threads, we can conclude that algorithm is compute-bound - it spends most of its time computing max and min for expanding bounding boxes, and partitioning primitives that are in cache. 
+        
+        
+        
+          
+          
+          
+      
+      
+      </section>
+      
+      
+      
       <section>
         <h3>Checkpoint (4/19)</h3>
         <ul>
