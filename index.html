@@ -20,9 +20,8 @@
           Aaron Perley (aperley)    <br />
           Siddhant Madhuk (smadhuk)
         </p>
-        <img src="thing.PNG" width="60%" style="margin: 0 auto;"></img>
-        <img src="thing2.PNG" width="60%" style="margin: 0 auto;"></img>
-      </header>
+        <img src="cow_bvh.png" width="100%" style="margin: 0 auto;"></img>
+        </header>
       
       <section>
         <h2>Writeup</h3>
@@ -36,7 +35,7 @@
         <p>
           Halfedge triangle meshes are used in computer graphics to represent surfaces in three dimensions. One technique used to render meshes from a particular viewpoint is raytracing, which produces very physically accurate images by simulating the paths rays of light take through a scene to the camera. Since naively intersecting a ray with a mesh with <code>N</code> primitives is <code>O(N)</code>, a bounding volume hierarchy is used to reduce the cost of ray-mesh intersection to <code>O(logN)</code>. A BVH is a tree structure in which each node knows which primitives lie inside of it, as well as the axis-aligned bounding box that contains all of its primitives.
         </p>
-        <img src="bvh.png" width="60%", style="margin: 0 auto;"></img>
+        <img src="cow_bvh_2.png" width="60%", style="margin: 0 auto;"></img>
         <p>
           A good BVH minimizes the amount of empty space inside of the bounding box of a node. In other words, when choosing a partitioning plane between a collection of primitives, we want to choose the plane that results in the smallest bounding boxes around the primitives on each side of it. The surface area heuristic is commonly used to do this: It assigns a cost to a particular partitioning of primitives based on the probability that a random ray entering a bounding box hits a primitive within the box. Psuedocode for a serial recursive algorithm that takes a list of primitives as input and produces a BVH using the surface area heuristic is shown below:
           
@@ -66,7 +65,7 @@ build_bvh(primitives):
         
       <h3>Approach</h3>
       <p>
-        We started with the serial BVH building algorithm from Aaron's implementation of the 15-462 raytracer. We used OpenMP on machines with 12-core Intel Xeon CPUs running at 3.2GHz. Loops over primitives and recursive calls were parallelized using OpenMP tasks.
+        We started with the serial BVH building algorithm from Aaron's implementation of the 15-462 raytracer. We used OpenMP on machines with 6-core Intel Xeon CPUs running at 3.2GHz. Loops over primitives and recursive calls were parallelized using OpenMP tasks.
       </p>
       
       <p>
@@ -86,31 +85,60 @@ build_bvh(primitives):
       
       <h3>Results</h3>
       <p>
-        We tested the three implementations on two different large triangle meshes and compared the wall clock runtimes to build the complete BVH.
+        We tested the three implementations on two different large triangle meshes and compared the average (over 4 trials) wall clock runtime to build the complete BVH.
       </p>
       
       <p>
-        Dragon (871,100 primitives)
+        <h4>Dragon (871,100 primitives)</h4>
+        <img src="render_dragon.png" width="100%"></img>
         <img src="runtime_dragon.png" width="100%"></img>
+        <img src="speedup_dragon.png" width="100%"></img>
       </p>
       
       <p>
-        Wall-E (240,000 primitives)
+        <h4>Wall-E (240,000 primitives)</h4>
+        <img src="render_walle.png" width="100%"></img>
         <img src="runtime_walle.png" width="100%"></img>
+        <img src="speedup_walle.png" width="100%"></img>
       </p>
       
-      Overall, we saw pretty similar speedups between the three implementations. Since the runtime completely flattens out past 12 threads, we can conclude that algorithm is compute-bound - it spends most of its time computing max and min for expanding bounding boxes, and partitioning primitives that are in cache. 
-        
-        
-        
-          
-          
-          
+      <p>
+        Overall, we saw pretty similar speedups between the three implementations. Since the runtime increases mostly linearly up to 6 threads, and then increases more slowly up to 12 threads, we can conclude that the algorithm is mostly, but not completely compute bound. The large compute portion is calculating max and min for expanding bounding boxes, and evaluating the SAH. However, the algorithm then partitions the list of pointers to primitives in memory, which is bandwidth-bound. Since speedup completely tapers off past 12 threads, we can see that the memory bandwidth requirements are not worth the cost of a context switch.
+      </p>
       
+      <h4>Speedup Limitations</h4>
+      <p>
+        <strong>Many <code>malloc/new</code> calls</strong><br/>
+        Each iteration of build_bvh <code>new</code>s 2 child nodes. Since the tree structure is so large, this results in many, very frequent calls to <code>new</code>, which may use internal locks. If we had more time, it would be interesting to experiment with a <code>malloc</code> implementation that uses thread-private memory or better manages contention.
+      </p>
+      <p>
+        <strong>Memory Bus Traffic</strong><br/>
+        After finding the best partitioning plane, a thread must sort the node's primitives so that its child nodes are handed a list of pointers to primitives that is contiguous in memory. This is done using <code>std::partition</code>, which performs many swaps of elements that may be far apart in memory.<br/>
+        In addition, since each primitive object is <code>malloc</code>'d separately, dereferencing each pointer to a primitive to get its bounding box is a random memory access.
+      </p>
       
+      <p>
+        <strong>Workload Imbalance</strong><br/>
+        Since the partition of the root node may not evenly split the primitives, parallelizing over recursive calls may result in workload imbalance, where some of the threads reach the bottom of the tree much earlier than others. Our work queue implementation solves this problem by pushing recursive calls onto a queue that is consumed by a thread pool. The queue is protected by a mutex, since it maintains internal data structures that allow it to know when the BVH build is complete. In well-balanced meshes like the Dragon, we see that its speedup suffers from the added complexity of the work queue compared to the parallel recursion implementation. However, the Wall-E mesh is very unbalanced, as the partition of the root node separates the base and the character. The work queue implementation has a greater speedup here, as it is able to manage this imbalance.
+      </p>
+      
+      <h3>References</h3>
+      <p>
+        <ul>
+          <li>
+            <a href="http://462cmu.github.io/asst3_pathtracer/">15-462 Pathtracer</a>
+          </li>
+        </ul>
+      </p>
+      
+      <h3>List of Work By Each Student</h3>
+      <p>
+        Equal work was performed by both project members.
+      </p>
+      
+      <hr>
       </section>
-      
-      
+
       
       <section>
         <h3>Checkpoint (4/19)</h3>
@@ -208,7 +236,7 @@ build_bvh(primitives):
 
 </section>
       <footer>
-        <p><small>Images from <a href="http://462cmu.github.io/asst2_meshedit/">15462 Assignment 2</a></small></p>
+        <p><small>Images from <a href="http://462cmu.github.io/asst3_pathtracer/">15-462 Assignment 3</a></small></p>
         <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
       </footer>
     </div>
